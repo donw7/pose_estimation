@@ -62,11 +62,8 @@ params.nodeNames = Slp{fi}{1}.node_names;
 
 %% check visually
 % aniStruct.track is frames x nodes x 2 (x and y)?
-draw_lines(Slp{1}{1}.track, Slp{1}{2}.track, 1:500, [0 1000 -1000 0])
-
+% draw_lines(Slp{1}{1}.track, Slp{1}{2}.track, 1:500, [0 1000 -1000 0])
 % validation, save figs
-
-
 
 %% extract-initialize
 Aslp = extract_classification(Slp, {'track', 'track'}); %* manual set analyze by cell type
@@ -224,216 +221,174 @@ params.nodeIdxcomp = nodepairsIdxAll(:,idxTargets);
 plothisto_spat(spatialdistcumMatBsoc, params.nodeNames, nodepairsIdx, [100 400 1800 600], [0 500], [0 300], 'fig4-2-soc')
 
 % calc and plot specified pairwise temporal distances (velocity)
-[temporaldistcumMatsoc, Aslpvelsoc] = calc_tempdist(Aslpxypairs, params.numNodes, Aslpfridx);
+[temporaldistcumMatsoc, Aslpvelsoc] = calc_tempdist(Aslpxypairs, params.numNodes, params.Aslpfridx);
 plothisto_temp(temporaldistcumMatsoc, params.nodeNames, params.numNodes, [100 400 1500 600], [0 100], [0 1000], 'fig5-soc')
 
 %% ----- CLEAN, INTERPOLATE (rest wrapped) -------------------------------------------------------------------
-%% match filenames
-AslpFilenames = wrap_eaGrp(Slp, @extract_classification, {'filename'});
-AslpPaths = wrap_eaGrp(Slp, @extract_classification, {'filepath'});
+%% set params and find vid filenames
+% assume single level - for multilevel groups (e.g. various phenotypes or
+% genotypes), use wrap_ series e.g. wrap_eaGrp():
+% e.g. AslpAll = wrap_eaGrp(Slp, @extract_classification, {'track', 'track'})
+% AslpDropAll = wrap_eaGrp(AslpAll, @calc_drop, params);
 
-cd(vidrootpath)
-dvidfiles = dir('*_crop.avi');
-filenameVidPaths = join(horzcat({dvidfiles.folder}', {dvidfiles.name}'), filesep);
-filenameVidPaths = filenameVidPaths(startsWith({dvidfiles.name}', 'Pair'));
-AvidPaths = wrap_eaGrp(AslpFilenames, @map_vidPaths, filenameVidPaths);
-
-%% clean, interpolate
+AslpFilenames = extract_classification(Slp, {'filename'});
 idxAnchor = params.nodeidxBody; % wrt body, specify
 idxTargets = params.nodeidxBodyTargets; % wrt body, specify
 idxAll = 1:length(params.nodeNames); % determined auto -
 nodepairsIdxAll = combvec(idxAll, idxAnchor);
 params.nodeIdxcomp = nodepairsIdxAll(:,idxTargets); % comparisons used
-params.threshdistpx = 140; % distance to threshold out outliers
+params.threshdistpx = 90; % distance to threshold out outliers
 params.compTF = 'greater'; % threshold by distance comparator
 params.interpTF = 'True'; % whether to interpolate or not, convert_xy()
-params.threshdrp = 5; % threshold for looking at frames dropped events
-
 assert(~isfield(params, 'Aslpfridx')) % not a field => consider all fr
-AslpAll = wrap_eaGrp(Slp, @extract_classification, {'track', 'track'}); % preserve Aslp name for use above
-AslpDropAll = wrap_eaGrp(AslpAll, @calc_drop, params); % conditionally takes Aslpfridx
-AslpxyInt = wrap_eaGrp(AslpAll, @convert_xy, params); % interp first w/o delete to find distance
-AslpspatBAll = wrap_eaGrp(AslpxyInt, @calc_pwdist, params); % conditionally takes Aslpfridx
-AslpfridxspatAll = wrap_eaGrp(AslpspatBAll, @getfridxspat, params); % conditionally takes Aslpfridx
+AslpxyInt = convert_xy(Aslp, params);
+Aslpfridxspat = getfridxspat(AslpspatB, params);
 
-%% merge fr vecs for various criteria for deletion
-% set up multi analysis struct
-% when considering variable number of data inputs
-Amulti = struct();
-for si = 1:length(Snames) % for each celltype eg cmk, dlx
-    C = AslpspatBAll.(Snames{si});
-    expifields = fieldnames(C);
-    for expi = 1:length(expifields)
-        ExpAnalysis = struct(); % clear
-        AslpatB = C.(expifields{expi});
-        AslpDropi = AslpDropAll.(Snames{si}).(expifields{expi});
-        ExpAnalysis.Dropslp = AslpDropi;
-        ExpAnalysis.AslpspatB = AslpatB;
-        Amulti.(Snames{si}).(expifields{expi}) = ExpAnalysis;
-    end
-end
-Annvec = wrap_eaGrpmulti(Amulti, @get_Annvec, params);
+%% match filenames, find vidpaths
+cd(vidrootpath)
+dvidfiles = dir('*.mp4');
+filenameVidPaths = join(horzcat({dvidfiles.folder}', {dvidfiles.name}'), filesep);
+filenameVidPaths = filenameVidPaths(startsWith({dvidfiles.name}', 'Pair'));
+AvidPaths = map_vidPaths(AslpFilenames, filenameVidPaths);
 
-%% use merged vec to delete
+%% annotate and write whole videos
+params.Draw.anncircradius = 3;
+params.Draw.inscolors = {'blue', [204, 102, 0], 'magenta', 'green', 'cyan', 'black'}; % up to 5 animal colors
+params.Draw.connections = horzcat(combvec(1, [2 3 5]), [5; 4]); % [2 by # pw connections to draw]
+params.threshdrp = 10; % threshold for looking at frames dropped events
+
+% get annotation vectors
+ExpAnalysis = struct();
+ExpAnalysis.Dropslp = Dropslp; % order matters
+ExpAnalysis.AslpspatB = AslpspatB;
+Annvec = get_Annvec(ExpAnalysis, params);
+
+% use merged ann vec to delete
 ds = struct();
-ds.AslpAll = AslpAll;
+ds.Aslp = Aslp;
 ds.Annvec = Annvec;
-params.analyzedsnames = {'AslpAll', 'Annvec'}; 
+params.analyzedsnames = {'Aslp', 'Annvec'}; 
 script = 'delete_slpAnnvec';
-dso = wrap_eaAniMulti(ds, script, params);
+sh = str2func(script);
+
+dso = struct();
+analyzefields = fieldnames(ds);
+firstfields = fieldnames(ds.(analyzefields{1}));
+
+for gi = 1:length(Aslp)
+    aifields = fieldnames(Aslp);
+    for ai = 1:length(aifields)
+        if ~isempty(Aslp(gi).(aifields{ai}))
+            anids = struct(); % clear
+            % analyzenames
+            for anai = 1:length(analyzefields)
+                anids.(analyzefields{anai}) =... % workspace for per animal analysis
+                    ds.(analyzefields{anai})(gi).(aifields{ai});
+            end
+
+            % run
+            sh()
+
+            % out
+            dso.(analyzefields{1})(gi).(aifields{ai}) = out;
+        end
+    end
+
+end
 
 %% interpolate
-AslpAlldel = dso;
-AslpxyInt = wrap_eaGrp(AslpAlldel, @convert_xy, params);
+Aslpdel = dso.Aslp;
+AslpxyInt = convert_xy(Aslpdel, params);
 
-%% annotate and write videos
-params.Draw.anncircradius = 4;
-params.Draw.inscolors = {'blue', [204, 102, 0], 'magenta', 'green', 'cyan', 'black'}; % up to 5 animal colors
-params.Draw.connections = horzcat(combvec(4, [1:3 5 7]), [6;7]); % [2 by # pw connections to draw]
-
-%%
+%% store annvecs
 A = struct();
-for si = 1:length(Snames) % for each celltype eg cmk, dlx
-    C = Annvec.(Snames{si});
-    expifields = fieldnames(C);
-    for expi = 1:length(expifields)
-        A.Annvec = C.(expifields{expi});
-        A.AslpxyInti = AslpxyInt.(Snames{si}).(expifields{expi});
-        A.AvidPaths = AvidPaths.(Snames{si}).(expifields{expi});
-        annPos_genVids(A, params)
-    end
-end
+A.Annveci = Annvec;
+A.AslpxyInti = AslpxyInt;
+A.AvidPathsi = AvidPaths;
 
-%% check videos
-% videoReader = VideoReader('PairC1_20210402_XZ70_XZ71_behav_exp.avi_crop.avi_ann.avi');
-% videoPlayer = vision.VideoPlayer;
-% % while hasFrame(videoReader)
-frvec = unionAcrossCols([Annvec(7).track1, Annvec(7).track2]);
-
-% ctrl implay:
-H = implay('PairD15_20210603_XZ96_XZ93_behav_exp.avi_crop.avi_ann');
-Ctrls = H.DataSource.Controls;
-for fi = 1:length(frvec) - 1
-    c = frvec(fi);
-    while c < frvec(fi+1)
-        stepFwd(Ctrls);
-        c = c + 1;
-    end
-    disp('paused until input..')
-    pause
-end
-% play(Ctrls)
-% vision.VideoPlayer
+%% write complete videos
+annPos_genVids(A, params)
 
 %% reformat, and reload interp and dropcts back into S struct
 assert(strcmp(params.interpTF, 'True'))
-for si = 1:length(Snames) % for each celltype eg cmk, dlx
-    expifields = fieldnames(Slp.(Snames{si}));
-    for expi = 1:length(expifields)
-        AslpxyInti = AslpxyInt.(Snames{si}).(expifields{expi}); % load from above
-        AslpDropi = AslpDropAll.(Snames{si}).(expifields{expi});
-        AslpspatBAlli = AslpspatBAll.(Snames{si}).(expifields{expi});
-        AslpfridxspatAlli = AslpfridxspatAll.(Snames{si}).(expifields{expi}); % load from above
-        Annveci = Annvec.(Snames{si}).(expifields{expi});
-        for pi = 1:length(AslpxyInti)
-            fields = fieldnames(AslpxyInti);
-            if ~isempty(AslpxyInti(pi).(fields{ai}))
-                for ai = 1:length(fields)
-                    xy = AslpxyInti(pi).(fields{ai}); % interp
-                    xy4d = zeros(size(xy{:,1}, 1), size(xy, 2), 2); % fr x node x axis (x, y)
-                    for ni = 1:size(xy, 2)
-                        xy4d(:,ni,1) = xy{:,ni}(:,1); % reformat back to orig
-                        xy4d(:,ni,2) = xy{:,ni}(:,2);
-                    end
-                    % store
-                    Slp.(Snames{si}).(expifields{expi}){pi}{ai}.trackInterp = xy4d;
-                    Slp.(Snames{si}).(expifields{expi}){pi}{ai}.trackInterpXY = xy;
-                    
-                    % also add other interp, deletion criteria eg drop, spatial outliers
-                    Slp.(Snames{si}).(expifields{expi}){pi}{ai}.DropEvents = AslpDropi(pi).(fields{ai});
-                    Slp.(Snames{si}).(expifields{expi}){pi}{ai}.DistancebwNodes = AslpspatBAlli(pi).(fields{ai});
-                    Slp.(Snames{si}).(expifields{expi}){pi}{ai}.DistanceOutliers = AslpfridxspatAlli(pi).(fields{ai});
-                    Slp.(Snames{si}).(expifields{expi}){pi}{ai}.MergedInterpVec = Annveci(pi).(fields{ai});
-                    Slp.(Snames{si}).(expifields{expi}){pi}{ai}.validationParams = params;
-                    
-                    
-                end
+for gi = 1:length(AslpxyInt)
+    fields = fieldnames(AslpxyInt);
+    if ~isempty(AslpxyInt(gi).(fields{ai}))
+        for ai = 1:length(fields)
+            xy = AslpxyInt(gi).(fields{ai}); % interp
+            xy4d = zeros(size(xy{:,1}, 1), size(xy, 2), 2); % fr x node x axis (x, y)
+            for ni = 1:size(xy, 2)
+                xy4d(:,ni,1) = xy{:,ni}(:,1); % reformat back to orig
+                xy4d(:,ni,2) = xy{:,ni}(:,2);
             end
+            % store
+            Slp{gi}{ai}.trackInterp = xy4d;
+            Slp{gi}{ai}.trackInterpXY = xy;
+            
+            % also save other categories
+            Slp{gi}{ai}.trackDrops = Dropslp(gi).(fields{ai});           
+            Slp{gi}{ai}.DistancebwNodes = AslpspatB(gi).(fields{ai});
+            Slp{gi}{ai}.DistanceOutliers = Aslpfridxspat(gi).(fields{ai});
+            Slp{gi}{ai}.MergedInterpVec = Annvec(gi).(fields{ai});
+            Slp{gi}{ai}.validationParams = params;
         end
     end
 end
 
 %% threshold out specific events and find frame indices, write to video only such frames
-params.Draw.anncircradius = 3;
-params.Draw.inscolors = {'blue', [204, 102, 0], 'magenta', 'green', 'cyan', 'black'}; % up to 5 animal colors
-A = struct();
-% 
-for si = 1:length(Snames) % for each celltype eg cmk, dlx
-    expifields = fieldnames(Annvec.(Snames{si}));
-    for expi = 1:length(expifields)
-        
-        Dropslp = AslpDropAll.(Snames{si}).(expifields{expi});
-        Aslpfridxspat = AslpfridxspatAll.(Snames{si}).(expifields{expi});
-        A.Annveci = Annvec.(Snames{si}).(expifields{expi});
-        A.AslpxyInti = AslpxyInt.(Snames{si}).(expifields{expi});
-        A.AvidPathsi = AvidPaths.(Snames{si}).(expifields{expi});
-        
-        for gi = 1:length(Dropslp)
-            fields = fieldnames(Dropslp);
-            % initialize
-            if ~isempty(Dropslp(gi).(fields{1}))
-                outFrames = zeros(size(Slp.(Snames{si}).(expifields{expi}){gi}{1}.trackInterp, 1), 1); % n x 1
-                Trackmat = zeros(size(Slp.(Snames{si}).(expifields{expi}){gi}{1}.trackInterp)); % orig format trackmat
+for gi = 1:length(Dropslp)
+    fields = fieldnames(Dropslp);
+
+    outFrames = zeros(size(Aslp(gi).(fields{ai}), 1), 1); % n x 1
+    Trackmat = zeros(size(Aslp(gi).(fields{ai}))); % orig format trackmat
+
+    for ai = 1:length(fields)
+        if ~isempty(Dropslp(gi).(fields{ai}))
+            %% 
+            Sint = Slp{gi}{ai}.trackInterp;
+            %%
+            drp = Dropslp(gi).(fields{ai});
+            threshnans = zeros(size(Dropslp(gi).(fields{ai}).Nans));
+            for ni = 1:length(drp.dropcts)
+                eventidx = drp.dropcts{ni} > params.threshdrp; % limit to events above certain length
+                friidx = drp.startIdx{ni}(eventidx); % fr start indices for such events
+                drplengths = drp.dropcts{ni}(eventidx); % lengths of events
+                for frii = 1:length(friidx) % set only such events to nan
+                    threshnans(friidx(frii) : friidx(frii) + drplengths(frii), ni, :) = nan;
+                end
             end
-            for ai = 1:length(fields)
-                if ~isempty(Dropslp(gi).(fields{ai}))
-                    % load from standard struct
-                    Sint = Slp.(Snames{si}).(expifields{expi}){gi}{ai}.trackInterp;
-                    % get and threshold dropped fr vectors
-                    drp = Dropslp(gi).(fields{ai});
-                    threshnans = zeros(size(Dropslp(gi).(fields{ai}).Nans));
-                    for ni = 1:length(drp.dropcts)
-                        eventidx = drp.dropcts{ni} > params.threshdrp; % limit to events above certain length
-                        friidx = drp.startIdx{ni}(eventidx); % fr start indices for such events
-                        drplengths = drp.dropcts{ni}(eventidx); % lengths of events
-                        for frii = 1:length(friidx) % set only such events to nan
-                            threshnans(friidx(frii) : friidx(frii) + drplengths(frii), ni, :) = nan;
-                        end
-                    end
-                    %%
-                    [~, DrpIdx] = unionAcrossCols(isnan(threshnans));
-                    % also spatially thresholded outliers
-                    [~, SpatIdx] = unionAcrossCols(Aslpfridxspat(gi).(fields{ai})); % outlier idx
-                    
-                    [DrpIdx, SpatIdx] = rmvFrames(DrpIdx, SpatIdx); 
-                    [~, mergeIdx] = unionAcrossCols([DrpIdx, SpatIdx]);
-                    [~, outFrames] = unionAcrossCols([outFrames, mergeIdx]);% union b/w ani, drpidx, and spatidx
-                    
-                    % store indices and orig format trackmat
-                    % trackmat for making slp file is inverse to fridx for making video
-                    NotDrpIdx = ~DrpIdx; % remove nondropped (good) frames
-                    NotSpatIdx = ~SpatIdx; % remove non-outlier frames
-                    Sint(NotSpatIdx,:,:) = nan;
-                    Sint(NotDrpIdx,:,:) = nan;
-                    Trackmat(:,:,:,ai) = Sint; % store along 4th dim
-                end % if not empty
-                
-            end % animal
-            A.AnnOutFr{gi} = find(outFrames == 1); % merge w/ above params
+            %%
+            [~, DrpIdx] = unionAcrossCols(isnan(threshnans));
+            % also spatially thresholded outliers
+            [~, SpatIdx] = unionAcrossCols(Aslpfridxspat(gi).(fields{ai})); % outlier idx
 
-        end % gi
-        % write to video, limit frames
-        annPos_genVids(A, params)
-            
-        %% write to h5, incomplete
-        % modify existing so can put back into slp gui and relabel (create - str process error)
-        % need to make new paths
-%             h5write('PairD11_test.h5', '/tracks', Trackmat)
-%             h5write('PairD11_test.h5', '/track_occupancy', Slp.(Snames{si}).exp{gi}{ai}.occupancy_matrix)
-    end
-end
+            [DrpIdx, SpatIdx] = rmvFrames(DrpIdx, SpatIdx); % could be diff lengths?
+            [~, mergeIdx] = unionAcrossCols([DrpIdx, SpatIdx]);
+            [~, outFrames] = unionAcrossCols([outFrames, mergeIdx]);% union b/w ani, drpidx, and spatidx
 
-%% write to h5, incomplete
+            % store indices and orig format trackmat
+            % trackmat for making slp file is inverse to fridx for making video
+            NotDrpIdx = ~DrpIdx; % remove nondropped (good) frames
+            NotSpatIdx = ~SpatIdx; % remove non-outlier frames
+            Sint(NotSpatIdx,:,:) = nan;
+            Sint(NotDrpIdx,:,:) = nan;
+            Trackmat(:,:,:,ai) = Sint; % store along 4th dim
+        end % if not empty
+
+    end % animal
+    A.AnnOutFr{gi} = find(outFrames == 1); % merge w/ above params
+    
+    %% write to h5, incomplete
+    % modify existing so can put back into slp gui and relabel (create - str process error)
+    % need to make new paths
+%     h5write('PairD11_test.h5', '/tracks', Trackmat)
+%     h5write('PairD11_test.h5', '/track_occupancy', Slp.(Snames{si}).exp{gi}{ai}.occupancy_matrix)
+
+end % gi
+% write to video, limit frames
+annPos_genVids(A, params)
+
+%% write back to h5
 % modify existing so can put back into slp gui and relabel (create - str process error)
 for si = 1:length(Snames) % for each celltype eg cmk, dlx
     for gi = 1:length(Dropslp)
