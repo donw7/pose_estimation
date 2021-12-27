@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-<img src="example_figures/hm_1.gif">
+<img src="example_figures/hm_1-1.gif">
 </p>
 
 ## acknowledgements:
