@@ -17,3 +17,4 @@
 - deepposekit: Graving et al., 2019 (deeposekit.org)
 - repnan: www.ig.utexas.edu/people/students/cgreene/
 - printStruct
+- avi2gif (Lindner)
