@@ -12,7 +12,21 @@
 7. generate heatmaps and trail plots for visualization
 8. visualize, identify statistical outliers, identify key error frames, and re-label recommended training examples for recalibrating training set
 
-### acknowledgements:
+## example inferenced videos:
+<p align="center">
+<img src="example_movies_processed/PairS1_20190128_113421.120s_ann_samplecrop2.gif">
+</p>
+
+## example analysis tools:
+<p align="center">
+<img src="example_figures/fig5.png">
+</p>
+
+<p align="center">
+<img src="example_figures/hm_1.gif">
+</p>
+
+## acknowledgements:
 - sleap: Pereira et al., 2020 (sleap.ai)
 - deepposekit: Graving et al., 2019 (deeposekit.org)
 - repnan: www.ig.utexas.edu/people/students/cgreene/
