@@ -172,6 +172,7 @@ plothisto_spat(spatialdistcumMatB, params.nodeNames, nodepairsIdx, [100 400 1800
 
 %% calc and plot specified pairwise temporal distances (velocity)
 [temporaldistcumMat, Aslpvel] = calc_tempdist(Aslpxypairs, params.numNodes, params.Aslpfridx);
+%%
 plothisto_temp(temporaldistcumMat, params.nodeNames, params.numNodes, [100 400 1500 600], [0 100], [0 1000], 'fig5')
 
 %% ------------------------- DO SAME BUT IN SOCIAL PROXIMITY -------------------------------------------------------
@@ -206,10 +207,10 @@ nodepairsIdxAll = combvec(idxAll, idxAnchor);
 params.nodeIdxcomp = nodepairsIdxAll(:,idxTargets);
 
 [AslpspatSBsoc, spatialdistcumMatSBsoc] = calc_pwdist(Aslpxypairs, params); % SB = wrt scopebase
-% specify position/w/h, XLim, YLim
+%% specify position/w/h, XLim, YLim
 plothisto_spat(spatialdistcumMatSBsoc, params.nodeNames, nodepairsIdx, [100 400 1800 600], [0 500], [0 300], 'fig3-2-soc')
 
-% do same for body anchor
+%% do same for body anchor
 idxAnchor = params.nodeidxBody; % wrt body, specify
 idxTargets = params.nodeidxBodyTargets; % wrt body, specify
 idxAll = 1:length(params.nodeNames); % determined auto -
@@ -217,11 +218,14 @@ nodepairsIdxAll = combvec(idxAll, idxAnchor);
 params.nodeIdxcomp = nodepairsIdxAll(:,idxTargets);
 
 [AslpspatBsoc, spatialdistcumMatBsoc] = calc_pwdist(Aslpxypairs, params); % B = wrt body
-% specify position/w/h, XLim, YLim
+
+%% specify position/w/h, XLim, YLim
 plothisto_spat(spatialdistcumMatBsoc, params.nodeNames, nodepairsIdx, [100 400 1800 600], [0 500], [0 300], 'fig4-2-soc')
 
-% calc and plot specified pairwise temporal distances (velocity)
+%% calc specified pairwise temporal distances (velocity)
 [temporaldistcumMatsoc, Aslpvelsoc] = calc_tempdist(Aslpxypairs, params.numNodes, params.Aslpfridx);
+
+%% plot
 plothisto_temp(temporaldistcumMatsoc, params.nodeNames, params.numNodes, [100 400 1500 600], [0 100], [0 1000], 'fig5-soc')
 
 %% ----- CLEAN, INTERPOLATE (rest wrapped) -------------------------------------------------------------------
