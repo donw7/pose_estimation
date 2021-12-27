@@ -245,7 +245,7 @@ AslpxyInt = convert_xy(Aslp, params);
 Aslpfridxspat = getfridxspat(AslpspatB, params);
 
 %% match filenames, find vidpaths
-cd(vidrootpath)
+% cd(vidrootpath)
 dvidfiles = dir('*.mp4');
 filenameVidPaths = join(horzcat({dvidfiles.folder}', {dvidfiles.name}'), filesep);
 filenameVidPaths = filenameVidPaths(startsWith({dvidfiles.name}', 'Pair'));
