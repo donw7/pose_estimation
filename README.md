@@ -1,6 +1,8 @@
 # pose estimation:
-- vision-based approaches to identifying key body parts and behavioral dynamics
-- analysis of drosophila, pigs (pending upload), and humans in multi-agent situations, kinetics, and spatial relationships
+- Lightweight CNN-based approaches to inference of body nodes and connectivity-based identity tracking
+- Example analysis of drosophila in close social contact, kinetics, and spatial relationships
+- Custom pipeline for parallelization, validation, and auto-sourcing examples, resulting in >10x efficiency in model development, improved performance (from 80% to >98%), and 3-4x reduction in training set examples
+- Enabled high-resolution analysis of behavioral dynamics of mice in close social contact (manuscript in preparation)
 
 ## pipeline for validation, visualization, and sourcing of key training examples:
 1. use wrapper_validation_pipeline.m to start
