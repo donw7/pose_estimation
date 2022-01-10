@@ -2,7 +2,7 @@
 - Lightweight CNN-based approaches to inference of body nodes and connectivity-based identity tracking
 - Example analysis of drosophila in close social contact, kinetics, and spatial relationships
 - Custom pipeline for parallelization, visualization, statistical validation, and auto-sourcing examples, resulting in >10x efficiency in model development, improved performance (from 80% to >98%), and 3-4x reduction in training set examples
-- Systematic model development as above, blending of top-down and bottom-up models, and other innovations enabled markerless disambiguation of occlusions and made model performance robust in interesting but difficult to parse social situations, e.g. aggression
+- Systematic model development as above, blending of top-down and bottom-up models, and other innovations enabled markerless disambiguation of occlusions and made model performance robust in interesting but difficult-to-parse social situations, e.g. aggression
 - Enabled high-resolution analysis of behavioral dynamics of mice in close social contact (manuscript in preparation)
 
 ## pipeline for validation, visualization, and sourcing of key training examples:
