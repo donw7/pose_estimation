@@ -1,5 +1,5 @@
 # pose estimation:
-- Lightweight CNN-based approaches to inference of body nodes and connectivity-based identity tracking
+- Encoder-decoder CNN-based approaches to inference of body nodes and connectivity-based identity tracking
 - Example analysis of drosophila in close social contact, kinetics, and spatial relationships
 - Custom pipeline for parallelization, visualization, statistical validation, and auto-sourcing examples, resulting in >10x efficiency in model development, improved overall performance (from 80% to >98% accuracy), and 3-4x reduction in training set examples
 - Systematic model development as above, blending of top-down and bottom-up models, and other innovations enabled markerless tracking and identity disambiguation of occluded key nodes (e.g. nose)
@@ -7,6 +7,11 @@
   - improved performance of nose-to-nose dropped events from 30% to < 5% - which is the difference between useable and not useable
 - Generalized to different tasks, angles, image qualities and robust to some (but not all) occlusions, e.g. experimenter, small implanted devices
 - Enabled high-resolution (both spatial and temporal) analysis of behavioral dynamics and neural-behavioral relationships of mice in dynamic social interaction (when paired with miniscope calcium imaging of neuronal activity; manuscript in preparation)
+
+## architecture used:
+<img src="example_figures/architecture-2.jpg">
+
+Figure from Pereira et al., 2020
 
 ## pipeline for validation, visualization, and sourcing of key training examples:
 1. use main_validation_pipeline.m to start
